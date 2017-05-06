@@ -7,14 +7,14 @@ from torch.optim import Adam
 
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
-from model.rvae import RVAE
+from model.contrvae import ContRVAE
 
 if __name__ == "__main__":
 
     if not os.path.exists('data/word_embeddings.npy'):
         raise FileNotFoundError("word embeddings file was't found")
 
-    parser = argparse.ArgumentParser(description='RVAE')
+    parser = argparse.ArgumentParser(description='ContRVAE')
     parser.add_argument('--num-iterations', type=int, default=120000, metavar='NI',
                         help='num iterations (default: 120000)')
     parser.add_argument('--batch-size', type=int, default=32, metavar='BS',
@@ -40,7 +40,7 @@ if __name__ == "__main__":
                             batch_loader.words_vocab_size,
                             batch_loader.chars_vocab_size)
 
-    rvae = RVAE(parameters)
+    rvae = ContRVAE(parameters)
     if args.use_trained:
         rvae.load_state_dict(t.load('trained_RVAE'))
     if args.use_cuda:

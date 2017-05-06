@@ -6,7 +6,7 @@ import torch as t
 
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
-from model.rvae import RVAE
+from model.contrvae import ContRVAE
 
 if __name__ == '__main__':
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
                             batch_loader.words_vocab_size,
                             batch_loader.chars_vocab_size)
 
-    rvae = RVAE(parameters)
+    rvae = ContRVAE(parameters)
     rvae.load_state_dict(t.load('trained_RVAE'))
     if args.use_cuda:
         rvae = rvae.cuda()

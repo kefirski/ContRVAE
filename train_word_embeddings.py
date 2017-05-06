@@ -28,7 +28,7 @@ if __name__ == '__main__':
                         batch_loader.words_vocab_size,
                         batch_loader.chars_vocab_size)
 
-    neg_loss = NEG_loss(params.word_vocab_size, params.word_embed_size)
+    neg_loss = NEG_loss(params.vocab_size, params.word_embed_size)
     if args.use_cuda:
         neg_loss = neg_loss.cuda()
 

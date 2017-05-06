@@ -107,7 +107,7 @@ class BatchLoader:
 
         self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 5)])
 
-    def next_seq(self, batch_size, target: str):
+    def next_seq(self, batch_size, target: str, use_cuda: bool):
         """
         :param batch_size: number of selected data elements 
         :param target: whether to use train or valid data source
@@ -122,17 +122,18 @@ class BatchLoader:
         decoder_input = [[self.word_to_idx[self.go_token]] + line for line in encoder_input]
         decoder_target = [line + [self.word_to_idx[self.end_token]] for line in encoder_input]
 
-        max_input_seq_len = np.amax([len(line) for line in decoder_target])
-
         for i in range(len(encoder_input)):
-            decoder_len = len(decoder_target[i])
-            to_add = max_input_seq_len - decoder_len
+            to_add = self.max_seq_len - len(decoder_target[i])
 
+            encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
             decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
             decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
-            encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
 
-        return np.array(encoder_input), np.array(decoder_input), np.array(decoder_target)
+        input = [Variable(t.from_numpy(var)).long() for var in [encoder_input, decoder_input, decoder_target]]
+        if use_cuda:
+            input = [var.cuda() for var in input]
+
+        return input
 
     def next_embedding_seq(self, seq_len):
         """

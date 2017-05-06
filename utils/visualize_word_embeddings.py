@@ -5,11 +5,11 @@ from sklearn.manifold import TSNE
 from utils.batch_loader import BatchLoader
 
 if __name__ == "__main__":
-    if not os.path.exists('../../data/word_embeddings.npy'):
+    if not os.path.exists('../../data/preprocessings/word_embeddings.npy'):
         raise FileNotFoundError("word embeddings file was't found")
 
     pca = TSNE(n_components=2)
-    word_embeddings = np.load('../../data/word_embeddings.npy')
+    word_embeddings = np.load('../../data/preprocessings/word_embeddings.npy')
     word_embeddings_pca = pca.fit_transform(word_embeddings)
 
     batch_loader = BatchLoader()

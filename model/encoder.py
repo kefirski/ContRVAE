@@ -1,9 +1,7 @@
 import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
-
 from selfModules.highway import Highway
-from utils.functions import parameters_allocation_check
 
 
 class Encoder(nn.Module):
@@ -12,13 +10,13 @@ class Encoder(nn.Module):
 
         self.params = params
 
-        self.hw1 = Highway(self.params.sum_depth + self.params.word_embed_size, 2, F.relu)
-
         self.rnn = nn.LSTM(input_size=self.params.word_embed_size + self.params.sum_depth,
                            hidden_size=self.params.encoder_rnn_size,
                            num_layers=self.params.encoder_num_layers,
                            batch_first=True,
                            bidirectional=True)
+
+        self.highway = Highway(self.params.encoder_rnn_size * 2, 3, F.elu)
 
     def forward(self, input):
         """
@@ -29,11 +27,7 @@ class Encoder(nn.Module):
         [batch_size, seq_len, embed_size] = input.size()
 
         input = input.view(-1, embed_size)
-        input = self.hw1(input)
         input = input.view(batch_size, seq_len, embed_size)
-
-        assert parameters_allocation_check(self), \
-            'Invalid CUDA options. Parameters should be allocated in the same memory'
 
         ''' Unfold rnn with zero initial state and get its final state from the last layer
         '''
@@ -44,4 +38,4 @@ class Encoder(nn.Module):
         h_1, h_2 = final_state[0], final_state[1]
         final_state = t.cat([h_1, h_2], 1)
 
-        return final_state
+        return self.highway(final_state)
