@@ -2,7 +2,7 @@ import collections
 import os
 import numpy as np
 from six.moves import cPickle
-from .functional import *
+from .functions import *
 import torch as t
 from torch.autograd import Variable
 
@@ -14,7 +14,6 @@ class BatchLoader:
 
         self.preprocessing_path = path + 'preprocessings/'
         if not os.path.exists(self.preprocessing_path):
-            print(self.preprocessing_path)
             os.makedirs(self.preprocessing_path)
 
         self.data_files = [path + 'train.txt',
@@ -88,7 +87,7 @@ class BatchLoader:
             np.save(path, self.data_tensor[target])
 
             '''uses to pick up data pairs for embedding learning'''
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 3)])
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 5)])
 
     def load_preprocessed(self, data_files, idx_file, tensor_paths):
 
@@ -106,9 +105,9 @@ class BatchLoader:
 
         self.data_tensor = np.array([np.load(target) for target in tensor_paths])
 
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 3)])
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 5)])
 
-    def true_data(self, batch_size, target: str):
+    def next_seq(self, batch_size, target: str):
         """
         :param batch_size: number of selected data elements 
         :param target: whether to use train or valid data source
@@ -119,17 +118,21 @@ class BatchLoader:
 
         indexes = np.array(np.random.randint(self.num_lines[target], size=batch_size))
 
-        target = [self.data_tensor[target][index] for index in indexes]
-        target = [line + [self.word_to_idx[self.end_token]] for line in target]
+        encoder_input = [self.data_tensor[target][index] for index in indexes]
+        decoder_input = [[self.word_to_idx[self.go_token]] + line for line in encoder_input]
+        decoder_target = [line + [self.word_to_idx[self.end_token]] for line in encoder_input]
 
-        max_input_seq_len = np.amax([len(line) for line in target])
+        max_input_seq_len = np.amax([len(line) for line in decoder_target])
 
-        for i, line in enumerate(target):
-            line_len = len(line)
-            to_add = max_input_seq_len - line_len
-            target[i] = line + [self.word_to_idx[self.pad_token]] * to_add
+        for i in range(len(encoder_input)):
+            decoder_len = len(decoder_target[i])
+            to_add = max_input_seq_len - decoder_len
 
-        return np.array(target)
+            decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
+            decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
+            encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
+
+        return np.array(encoder_input), np.array(decoder_input), np.array(decoder_target)
 
     def next_embedding_seq(self, seq_len):
         """
@@ -193,12 +196,3 @@ class BatchLoader:
         x = np.zeros((self.vocab_size, 1))
         x[ix] = 1
         return self.idx_to_word[np.argmax(x)]
-
-    @staticmethod
-    def sample_z(batch_size, use_cuda, params):
-
-        z = Variable(t.rand([batch_size, params.latent_variable_size]))
-        if use_cuda:
-            z = z.cuda()
-
-        return z
