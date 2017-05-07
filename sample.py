@@ -6,7 +6,7 @@ import torch as t
 
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
-from model.contrvae import ContRVAE
+from model.cont_rvae import ContRVAE
 
 if __name__ == '__main__':
 

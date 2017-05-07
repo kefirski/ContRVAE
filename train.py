@@ -1,17 +1,16 @@
 import argparse
 import os
-
 import numpy as np
 import torch as t
 from torch.optim import Adam
-
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
-from model.contrvae import ContRVAE
+from model.cont_rvae import ContRVAE
+
 
 if __name__ == "__main__":
 
-    if not os.path.exists('data/word_embeddings.npy'):
+    if not os.path.exists('data/preprocessings/word_embeddings.npy'):
         raise FileNotFoundError("word embeddings file was't found")
 
     parser = argparse.ArgumentParser(description='ContRVAE')
@@ -21,50 +20,48 @@ if __name__ == "__main__":
                         help='batch size (default: 32)')
     parser.add_argument('--use-cuda', type=bool, default=True, metavar='CUDA',
                         help='use cuda (default: True)')
-    parser.add_argument('--learning-rate', type=float, default=0.00005, metavar='LR',
-                        help='learning rate (default: 0.00005)')
-    parser.add_argument('--dropout', type=float, default=0.3, metavar='DR',
+    parser.add_argument('--learning-rate', type=float, default=0.0005, metavar='LR',
+                        help='learning rate (default: 0.0005)')
+    parser.add_argument('--dropout', type=float, default=0.25, metavar='DR',
                         help='dropout (default: 0.3)')
     parser.add_argument('--use-trained', type=bool, default=False, metavar='UT',
                         help='load pretrained model (default: False)')
-    parser.add_argument('--ce-result', default='', metavar='CE',
-                        help='ce result path (default: '')')
+    parser.add_argument('--se-result', default='', metavar='SE',
+                        help='square error result path (default: '')')
     parser.add_argument('--kld-result', default='', metavar='KLD',
-                        help='ce result path (default: '')')
+                        help='kld result path (default: '')')
 
     args = parser.parse_args()
 
     batch_loader = BatchLoader('')
-    parameters = Parameters(batch_loader.max_word_len,
-                            batch_loader.max_seq_len,
-                            batch_loader.words_vocab_size,
-                            batch_loader.chars_vocab_size)
+    parameters = Parameters(batch_loader.max_seq_len,
+                            batch_loader.words_vocab_size)
 
-    rvae = ContRVAE(parameters)
+    cont_rvae = ContRVAE(parameters)
     if args.use_trained:
-        rvae.load_state_dict(t.load('trained_RVAE'))
+        cont_rvae.load_state_dict(t.load('trained_ContRVAE'))
     if args.use_cuda:
-        rvae = rvae.cuda()
+        cont_rvae = cont_rvae.cuda()
 
-    optimizer = Adam(rvae.learnable_parameters(), args.learning_rate)
+    optimizer = Adam(cont_rvae.learnable_parameters(), args.learning_rate)
 
-    train_step = rvae.trainer(optimizer, batch_loader)
-    validate = rvae.validater(batch_loader)
+    train_step = cont_rvae.trainer(optimizer, batch_loader)
+    validate = cont_rvae.validater(batch_loader)
 
-    ce_result = []
+    se_result = []
     kld_result = []
 
     for iteration in range(args.num_iterations):
 
-        cross_entropy, kld, coef = train_step(iteration, args.batch_size, args.use_cuda, args.dropout)
+        error, kld, coef = train_step(iteration, args.batch_size, args.use_cuda, args.dropout)
 
-        if iteration % 5 == 0:
+        if iteration % 10 == 0:
             print('\n')
             print('------------TRAIN-------------')
             print('----------ITERATION-----------')
             print(iteration)
-            print('--------CROSS-ENTROPY---------')
-            print(cross_entropy.data.cpu().numpy()[0])
+            print('--------SQUARE ERROR----------')
+            print(error.data.cpu().numpy()[0])
             print('-------------KLD--------------')
             print(kld.data.cpu().numpy()[0])
             print('-----------KLD-coef-----------')
@@ -72,26 +69,26 @@ if __name__ == "__main__":
             print('------------------------------')
 
         if iteration % 10 == 0:
-            cross_entropy, kld = validate(args.batch_size, args.use_cuda)
+            error, kld = validate(args.batch_size, args.use_cuda)
 
-            cross_entropy = cross_entropy.data.cpu().numpy()[0]
+            error = error.data.cpu().numpy()[0]
             kld = kld.data.cpu().numpy()[0]
 
             print('\n')
             print('------------VALID-------------')
-            print('--------CROSS-ENTROPY---------')
-            print(cross_entropy)
+            print('--------SQUARE ERROR----------')
+            print(error)
             print('-------------KLD--------------')
             print(kld)
             print('------------------------------')
 
-            ce_result += [cross_entropy]
+            se_result += [error]
             kld_result += [kld]
 
         if iteration % 20 == 0:
             seed = np.random.normal(size=[1, parameters.latent_variable_size])
 
-            sample = rvae.sample(batch_loader, 50, seed, args.use_cuda)
+            sample = cont_rvae.sample(batch_loader, 50, seed, args.use_cuda)
 
             print('\n')
             print('------------SAMPLE------------')
@@ -99,7 +96,7 @@ if __name__ == "__main__":
             print(sample)
             print('------------------------------')
 
-    t.save(rvae.state_dict(), 'trained_RVAE')
+    t.save(cont_rvae.state_dict(), 'trained_ContRVAE')
 
-    np.save('ce_result_{}.npy'.format(args.ce_result), np.array(ce_result))
-    np.save('kld_result_npy_{}'.format(args.kld_result), np.array(kld_result))
+    np.save('ce_result_{}.npy'.format(args.ce_result), np.array(se_result))
+    np.save('kld_result_{}.npy'.format(args.kld_result), np.array(kld_result))

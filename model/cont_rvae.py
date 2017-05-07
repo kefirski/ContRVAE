@@ -144,8 +144,8 @@ class ContRVAE(nn.Module):
         initial_state = None
 
         for i in range(seq_len):
-            logits, initial_state, _ = self(0., None, None,
-                                            decoder_input, decoder_input,
+            logits, initial_state, _ = self(0., None,
+                                            decoder_input,
                                             z, initial_state)
 
             logits = logits.view(-1, self.params.word_vocab_size)
