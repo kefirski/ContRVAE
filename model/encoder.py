@@ -10,7 +10,7 @@ class Encoder(nn.Module):
 
         self.params = params
 
-        self.rnn = nn.LSTM(input_size=self.params.word_embed_size + self.params.sum_depth,
+        self.rnn = nn.LSTM(input_size=self.params.word_embed_size,
                            hidden_size=self.params.encoder_rnn_size,
                            num_layers=self.params.encoder_num_layers,
                            batch_first=True,

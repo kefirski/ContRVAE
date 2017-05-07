@@ -65,18 +65,18 @@ class ContRVAE(nn.Module):
             std = t.exp(0.5 * logvar)
 
             z = Variable(t.randn([batch_size, self.params.latent_variable_size]))
-            if use_cuda:
+            if encoder_input.is_cuda:
                 z = z.cuda()
 
             z = z * std + mu
 
-            kld = (-0.5 * t.sum(logvar - t.pow(mu, 2) - t.exp(logvar) + 1, 1)).mean().squeeze(1)
+            kld = (-0.5 * t.sum(logvar - t.pow(mu, 2) - t.exp(logvar) + 1, 1)).mean()
         else:
             kld = None
 
         decoder_input = self.embedding(decoder_input)
-        decoder_input = F.dropout(decoder_input, drop_prob, z is None)
-        out, final_state = self.decoder(decoder_input, z, drop_prob, initial_state)
+        decoder_input = F.dropout(decoder_input, drop_prob, training=z is None)
+        out, final_state = self.decoder(decoder_input, z, initial_state)
 
         return out, final_state, kld
 
@@ -88,7 +88,7 @@ class ContRVAE(nn.Module):
     def trainer(self, optimizer, batch_loader):
         def train(i, batch_size, use_cuda, drop_prob):
 
-            input = batch_loader.next_batch(batch_size, 'train', use_cuda)
+            input = batch_loader.next_seq(batch_size, 'train', use_cuda)
             [encoder_input, decoder_input, decoder_target] = input
 
             logits, _, kld = self(drop_prob, encoder_input, decoder_input)
@@ -97,7 +97,7 @@ class ContRVAE(nn.Module):
             output = self.embedding.weighted_lockup(output)
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean().squeeze(1)
+            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean()
 
             '''
             loss is constructed from error formed from squared error between output and target
@@ -116,7 +116,7 @@ class ContRVAE(nn.Module):
     def validater(self, batch_loader):
         def validate(batch_size, use_cuda):
 
-            input = batch_loader.next_batch(batch_size, 'validation', use_cuda)
+            input = batch_loader.next_seq(batch_size, 'validation', use_cuda)
             [encoder_input, decoder_input, decoder_target] = input
 
             logits, _, kld = self(0, encoder_input, decoder_input)
@@ -125,7 +125,7 @@ class ContRVAE(nn.Module):
             output = self.embedding.weighted_lockup(output)
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean().squeeze(1)
+            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean()
 
             return error, kld
 
@@ -137,7 +137,7 @@ class ContRVAE(nn.Module):
         if use_cuda:
             z = z.cuda()
 
-        decoder_input = batch_loader.go_input(1)
+        decoder_input = batch_loader.go_input(1, use_cuda)
 
         result = []
 
@@ -148,7 +148,7 @@ class ContRVAE(nn.Module):
                                             decoder_input,
                                             z, initial_state)
 
-            logits = logits.view(-1, self.params.word_vocab_size)
+            logits = logits.view(-1, self.params.vocab_size)
             output = self.soft_argmax(logits).squeeze(0).squeeze(0)
 
             word = batch_loader.decode_word(output.data.cpu().numpy())

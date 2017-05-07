@@ -12,27 +12,25 @@ from selfModules.neg import NEG_loss
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='word2vec')
-    parser.add_argument('--num-iterations', type=int, default=1000000, metavar='NI',
+    parser.add_argument('--num-iterations', type=int, default=10, metavar='NI',
                         help='num iterations (default: 1000000)')
     parser.add_argument('--batch-size', type=int, default=10, metavar='BS',
                         help='batch size (default: 10)')
     parser.add_argument('--num-sample', type=int, default=5, metavar='NS',
                         help='num sample (default: 5)')
-    parser.add_argument('--use-cuda', type=bool, default=True, metavar='CUDA',
-                        help='use cuda (default: True)')
+    parser.add_argument('--use-cuda', type=bool, default=False, metavar='CUDA',
+                        help='use cuda (default: False)')
     args = parser.parse_args()
 
     batch_loader = BatchLoader('')
-    params = Parameters(batch_loader.max_word_len,
-                        batch_loader.max_seq_len,
-                        batch_loader.words_vocab_size,
-                        batch_loader.chars_vocab_size)
+    params = Parameters(batch_loader.max_seq_len,
+                        batch_loader.vocab_size)
 
     neg_loss = NEG_loss(params.vocab_size, params.word_embed_size)
     if args.use_cuda:
         neg_loss = neg_loss.cuda()
 
-    # NEG_loss is defined over two embedding matrixes with shape of [params.word_vocab_size, params.word_embed_size]
+    """NEG_loss is defined over two embedding matrixes with shape of [params.vocab_size, params.word_embed_size]"""
     optimizer = SGD(neg_loss.parameters(), 0.1)
 
     for iteration in range(args.num_iterations):
@@ -55,4 +53,4 @@ if __name__ == '__main__':
             print('iteration = {}, loss = {}'.format(iteration, out))
 
     word_embeddings = neg_loss.input_embeddings()
-    np.save('data/word_embeddings.npy', word_embeddings)
+    np.save('data/preprocessings/word_embeddings.npy', word_embeddings)

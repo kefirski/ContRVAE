@@ -18,8 +18,8 @@ if __name__ == "__main__":
                         help='num iterations (default: 120000)')
     parser.add_argument('--batch-size', type=int, default=32, metavar='BS',
                         help='batch size (default: 32)')
-    parser.add_argument('--use-cuda', type=bool, default=True, metavar='CUDA',
-                        help='use cuda (default: True)')
+    parser.add_argument('--use-cuda', type=bool, default=False, metavar='CUDA',
+                        help='use cuda (default: False)')
     parser.add_argument('--learning-rate', type=float, default=0.0005, metavar='LR',
                         help='learning rate (default: 0.0005)')
     parser.add_argument('--dropout', type=float, default=0.25, metavar='DR',
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     batch_loader = BatchLoader('')
     parameters = Parameters(batch_loader.max_seq_len,
-                            batch_loader.words_vocab_size)
+                            batch_loader.vocab_size)
 
     cont_rvae = ContRVAE(parameters)
     if args.use_trained:

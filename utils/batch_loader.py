@@ -129,7 +129,8 @@ class BatchLoader:
             decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
             decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
 
-        input = [Variable(t.from_numpy(var)).long() for var in [encoder_input, decoder_input, decoder_target]]
+        input = [np.array(var) for var in [encoder_input, decoder_input, decoder_target]]
+        input = [Variable(t.from_numpy(var)).long() for var in input]
         if use_cuda:
             input = [var.cuda() for var in input]
 
@@ -178,7 +179,7 @@ class BatchLoader:
         return np.array(result).transpose()
 
     def go_input(self, batch_size, use_cuda):
-        go_input = np.array([self.word_to_idx[self.go_token]] * batch_size)
+        go_input = np.array([[self.word_to_idx[self.go_token]]] * batch_size)
         go_input = Variable(t.from_numpy(go_input)).long()
         if use_cuda:
             go_input = go_input.cuda()
