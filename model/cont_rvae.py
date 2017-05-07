@@ -20,8 +20,8 @@ class ContRVAE(nn.Module):
 
         self.encoder = Encoder(self.params)
 
-        self.context_to_mu = nn.Linear(self.params.encoder_rnn_size * 2, self.params.latent_variable_size)
-        self.context_to_logvar = nn.Linear(self.params.encoder_rnn_size * 2, self.params.latent_variable_size)
+        self.context_to_mu = nn.Linear(self.params.encoder_size * 2, self.params.latent_variable_size)
+        self.context_to_logvar = nn.Linear(self.params.encoder_size * 2, self.params.latent_variable_size)
 
         self.decoder = Decoder(self.params)
 

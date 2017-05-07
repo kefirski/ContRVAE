@@ -5,7 +5,7 @@ from torch.autograd import Variable
 
 
 class SoftArgmax(nn.Module):
-    def __init__(self, temperature=1e-3):
+    def __init__(self, temperature=0.5e-0):
         super(SoftArgmax, self).__init__()
         self.temperature = temperature
 

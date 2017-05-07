@@ -12,11 +12,11 @@ class Decoder(nn.Module):
         self.params = params
 
         self.rnn = nn.LSTM(input_size=self.params.latent_variable_size + self.params.word_embed_size,
-                           hidden_size=self.params.decoder_rnn_size,
+                           hidden_size=self.params.decoder_size,
                            num_layers=self.params.decoder_num_layers,
                            batch_first=True)
 
-        self.fc = nn.Linear(self.params.decoder_rnn_size, self.params.vocab_size)
+        self.fc = nn.Linear(self.params.decoder_size, self.params.vocab_size)
 
     def forward(self, decoder_input, z, initial_state=None):
         """
@@ -40,7 +40,7 @@ class Decoder(nn.Module):
 
         rnn_out, final_state = self.rnn(decoder_input, initial_state)
 
-        rnn_out = rnn_out.contiguous().view(-1, self.params.decoder_rnn_size)
+        rnn_out = rnn_out.contiguous().view(-1, self.params.decoder_size)
         result = self.fc(rnn_out)
         result = result.view(batch_size, seq_len, self.params.vocab_size)
 

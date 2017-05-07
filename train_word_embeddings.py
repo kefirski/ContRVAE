@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch as t
 from torch.autograd import Variable
-from torch.optim import SGD
+from torch.optim import Adam
 
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
@@ -12,7 +12,7 @@ from selfModules.neg import NEG_loss
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='word2vec')
-    parser.add_argument('--num-iterations', type=int, default=10, metavar='NI',
+    parser.add_argument('--num-iterations', type=int, default=1000000, metavar='NI',
                         help='num iterations (default: 1000000)')
     parser.add_argument('--batch-size', type=int, default=10, metavar='BS',
                         help='batch size (default: 10)')
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         neg_loss = neg_loss.cuda()
 
     """NEG_loss is defined over two embedding matrixes with shape of [params.vocab_size, params.word_embed_size]"""
-    optimizer = SGD(neg_loss.parameters(), 0.1)
+    optimizer = Adam(neg_loss.parameters(), 0.1)
 
     for iteration in range(args.num_iterations):
 
