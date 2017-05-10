@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch as t
 from torch.autograd import Variable
-from torch.optim import Adam
+from torch.optim import SGD
 
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
@@ -14,10 +14,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='word2vec')
     parser.add_argument('--num-iterations', type=int, default=1000000, metavar='NI',
                         help='num iterations (default: 1000000)')
-    parser.add_argument('--batch-size', type=int, default=10, metavar='BS',
-                        help='batch size (default: 10)')
-    parser.add_argument('--num-sample', type=int, default=5, metavar='NS',
-                        help='num sample (default: 5)')
+    parser.add_argument('--batch-size', type=int, default=25, metavar='BS',
+                        help='batch size (default: 25)')
+    parser.add_argument('--num-sample', type=int, default=8, metavar='NS',
+                        help='num sample (default: 8)')
     parser.add_argument('--use-cuda', type=bool, default=False, metavar='CUDA',
                         help='use cuda (default: False)')
     args = parser.parse_args()
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         neg_loss = neg_loss.cuda()
 
     """NEG_loss is defined over two embedding matrixes with shape of [params.vocab_size, params.word_embed_size]"""
-    optimizer = Adam(neg_loss.parameters(), 0.1)
+    optimizer = SGD(neg_loss.parameters(), 0.1)
 
     for iteration in range(args.num_iterations):
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         if args.use_cuda:
             input, target = input.cuda(), target.cuda()
 
-        out = neg_loss(input, target, args.num_sample).mean()
+        out = neg_loss(input, target, args.num_sample)
 
         optimizer.zero_grad()
         out.backward()

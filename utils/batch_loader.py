@@ -87,7 +87,7 @@ class BatchLoader:
             np.save(path, self.data_tensor[target])
 
             '''uses to pick up data pairs for embedding learning'''
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 5)])
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 8)])
 
     def load_preprocessed(self, data_files, idx_file, tensor_paths):
 
@@ -105,7 +105,7 @@ class BatchLoader:
 
         self.data_tensor = np.array([np.load(target) for target in tensor_paths])
 
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 5)])
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 8)])
 
     def next_seq(self, batch_size, target: str, use_cuda: bool):
         """
@@ -136,47 +136,30 @@ class BatchLoader:
 
         return input
 
-    def next_embedding_seq(self, seq_len):
-        """
-        :returns: seq_len pairs from embed_pairs
-        """
+    def next_embedding_seq(self, batch_size):
 
         embed_len = len(self.embed_pairs)
 
         seq = np.array([self.embed_pairs[i % embed_len]
-                        for i in np.arange(self.word_embedding_index, self.word_embedding_index + seq_len)])
+                        for i in np.arange(self.word_embedding_index, self.word_embedding_index + batch_size)])
 
-        self.word_embedding_index = (self.word_embedding_index + seq_len) % embed_len
+        self.word_embedding_index = (self.word_embedding_index + batch_size) % embed_len
 
-        return seq[:, 0], seq[:, 1]
+        return seq[:, 0], seq[:, 1:]
 
     @staticmethod
-    def bag_window(seq, window=1):
-        """
-        :return: input and output for word embeddings learning,
-                 where input = [b, b, c, c, d, d, e, e]
-                 and output  = [a, c, b, d, c, e, d, g]
-                 for seq [a, b, c, d, e, g]
-                 with window equal to 1
-        """
+    def bag_window(seq, window=3):
 
-        assert window >= 1 and isinstance(window, int)
+        assert window > 1 and isinstance(window, int)
 
-        '''input, target'''
-        result = [[], []]
+        context = []
         seq_len = len(seq)
+        num_slices = seq_len - window + 1
 
-        for i, element in enumerate(seq):
-            for j in range(i + 1, i + window + 1):
-                if j < seq_len:
-                    result[0] += [element]
-                    result[1] += [seq[j]]
-            for j in range(i - 1, i - window - 1, -1):
-                if j >= 0:
-                    result[0] += [element]
-                    result[1] += [seq[j]]
+        for i in range(num_slices):
+            context += [seq[i:i + window]]
 
-        return np.array(result).transpose()
+        return [[value] + c[:i] + c[i + 1:] for c in context for i, value in enumerate(c)]
 
     def go_input(self, batch_size, use_cuda):
         go_input = np.array([[self.word_to_idx[self.go_token]]] * batch_size)
