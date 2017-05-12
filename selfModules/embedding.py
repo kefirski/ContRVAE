@@ -10,7 +10,6 @@ class EmbeddingLockup(nn.Module):
         super(EmbeddingLockup, self).__init__()
 
         self.params = params
-
         word_embeddings_path = path_prefix + 'data/preprocessings/word_embeddings.npy'
         assert os.path.exists(word_embeddings_path), 'Word embeddings not found'
 
@@ -18,6 +17,7 @@ class EmbeddingLockup(nn.Module):
 
         self.embeddings = nn.Embedding(self.params.vocab_size, self.params.word_embed_size)
         self.embeddings.weight = Parameter(t.from_numpy(embeddings).float(), requires_grad=False)
+        self.norm = t.norm(self.embeddings.weight, dim=1).squeeze(1)
 
     def forward(self, input):
         """
@@ -27,20 +27,13 @@ class EmbeddingLockup(nn.Module):
 
         return self.embeddings(input)
 
-    def weighted_lockup(self, input):
+    def similarity(self, input):
         """
-        :param input: An 2D or 3D tensor with shape of [batch_size, Option(seq_len), vocab_size] 
-        :return: An tensor with shape of [batch_size, Option(seq_len), word_embedding_size]
+        :param input: An tensor with shape of [word_embed_size] 
+        :return: An tensor with shape [vocab_size] with estimated similarity values
         """
 
-        size = input.size()
-        assert len(size) == 2 or len(size) == 3, 'Invalid input rang. 2D or 3D tensor is required'
+        input_norm = t.norm(input, dim=0).repeat(self.params.vocab_size)
+        input = input.unsqueeze(1)
 
-        batch_size = size[0]
-
-        if len(size) == 3:
-            input = input.view(-1, self.params.vocab_size)
-
-        result = t.mm(input, self.embeddings.weight)
-
-        return result if len(size) == 2 else result.view(batch_size, -1, self.params.word_embed_size)
+        return (t.mm(self.embeddings.weight, input) / (self.norm * input_norm + 1e-16)).squeeze(1)

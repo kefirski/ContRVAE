@@ -25,8 +25,6 @@ class ContRVAE(nn.Module):
 
         self.decoder = Decoder(self.params)
 
-        self.soft_argmax = SoftArgmax()
-
     def forward(self, drop_prob,
                 encoder_input=None,
                 decoder_input=None,
@@ -40,8 +38,8 @@ class ContRVAE(nn.Module):
         :param z: context if sampling is performing
         :param initial_state: initial state of decoder rnn in order to perform sampling
 
-        :return: unnormalized logits of sentence words distribution probabilities
-                    with shape of [batch_size, seq_len, word_vocab_size]
+        :return: mu of N(mu, var) of sentence words distribution probabilities
+                    with shape of [batch_size, seq_len, word_embed_size]
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
         """
 
@@ -88,16 +86,14 @@ class ContRVAE(nn.Module):
     def trainer(self, optimizer, batch_loader):
         def train(i, batch_size, use_cuda, drop_prob):
 
-            input = batch_loader.next_seq(batch_size, 'train', use_cuda)
-            [encoder_input, decoder_input, decoder_target] = input
+            [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'train', use_cuda)
 
-            logits, _, kld = self(drop_prob, encoder_input, decoder_input)
+            output, _, kld = self(drop_prob, encoder_input, decoder_input)
 
-            output = self.soft_argmax(logits)
-            output = self.embedding.weighted_lockup(output)
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
+            output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean()
+            error = t.pow(output - decoder_target, 2).sum(1).mean()
 
             '''
             loss is constructed from error formed from squared error between output and target
@@ -116,16 +112,14 @@ class ContRVAE(nn.Module):
     def validater(self, batch_loader):
         def validate(batch_size, use_cuda):
 
-            input = batch_loader.next_seq(batch_size, 'validation', use_cuda)
-            [encoder_input, decoder_input, decoder_target] = input
+            [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'validation', use_cuda)
 
-            logits, _, kld = self(0, encoder_input, decoder_input)
+            output, _, kld = self(0, encoder_input, decoder_input)
 
-            output = self.soft_argmax(logits)
-            output = self.embedding.weighted_lockup(output)
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
+            output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).view(batch_size, -1).sum(1).mean()
+            error = t.pow(output - decoder_target, 2).sum(1).mean()
 
             return error, kld
 
@@ -144,21 +138,23 @@ class ContRVAE(nn.Module):
         initial_state = None
 
         for i in range(seq_len):
-            logits, initial_state, _ = self(0., None,
+            output, initial_state, _ = self(0., None,
                                             decoder_input,
                                             z, initial_state)
 
-            logits = logits.view(-1, self.params.vocab_size)
-            output = self.soft_argmax(logits).squeeze(0).squeeze(0)
+            output = output.squeeze()
+            similarity = self.embedding.similarity(output)
+            _, idx = t.max(similarity, 0)
+            idx = idx.data.cpu().numpy()[0]
 
-            word = batch_loader.decode_word(output.data.cpu().numpy())
+            word = batch_loader.idx_to_word[idx]
 
             if word == batch_loader.end_token:
                 break
 
             result += [word]
 
-            decoder_input = np.array([[batch_loader.word_to_idx[word]]])
+            decoder_input = np.array([[idx]])
             decoder_input = Variable(t.from_numpy(decoder_input).long())
 
             if use_cuda:

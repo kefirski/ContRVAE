@@ -9,10 +9,10 @@ class Parameters:
 
         self.word_embed_size = 300
 
-        self.encoder_size = 180
+        self.encoder_size = 250
         self.encoder_num_layers = 3
 
-        self.latent_variable_size = 900
+        self.latent_variable_size = 800
 
-        self.decoder_size = 200
-        self.decoder_num_layers = 3
+        self.decoder_size = 120
+        self.decoder_num_layers = 4

@@ -1,7 +1,7 @@
 import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
-
+from selfModules.highway import Highway
 from utils.functions import parameters_allocation_check
 
 
@@ -16,7 +16,8 @@ class Decoder(nn.Module):
                            num_layers=self.params.decoder_num_layers,
                            batch_first=True)
 
-        self.fc = nn.Linear(self.params.decoder_size, self.params.vocab_size)
+        self.highway = Highway(self.params.decoder_size, 3, F.elu)
+        self.fc = nn.Linear(self.params.decoder_size, self.params.word_embed_size)
 
     def forward(self, decoder_input, z, initial_state=None):
         """
@@ -25,7 +26,7 @@ class Decoder(nn.Module):
         :param initial_state: initial state of decoder rnn
 
         :return: unnormalized logits of sentense words distribution probabilities
-                    with shape of [batch_size, seq_len, word_vocab_size]
+                    with shape of [batch_size, seq_len, word_embed_size]
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
         """
 
@@ -41,7 +42,8 @@ class Decoder(nn.Module):
         rnn_out, final_state = self.rnn(decoder_input, initial_state)
 
         rnn_out = rnn_out.contiguous().view(-1, self.params.decoder_size)
-        result = self.fc(rnn_out)
-        result = result.view(batch_size, seq_len, self.params.vocab_size)
+        result = self.highway(rnn_out)
+        result = self.fc(result)
+        result = result.view(batch_size, seq_len, self.params.word_embed_size)
 
         return result, final_state
