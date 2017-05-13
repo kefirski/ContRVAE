@@ -3,8 +3,8 @@ import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from .decoder import Decoder
-from .encoder import Encoder
+from .generator import Generator
+from .inference import Inference
 from selfModules.embedding import EmbeddingLockup
 from selfModules.softargmax import SoftArgmax
 from utils.functions import kld_coef, fold
@@ -18,26 +18,23 @@ class ContRVAE(nn.Module):
 
         self.embedding = EmbeddingLockup(self.params, '')
 
-        self.encoder = Encoder(self.params)
+        self.inference = Inference(self.params)
 
         self.context_to_mu = nn.Linear(self.params.encoder_size * 2, self.params.latent_variable_size)
         self.context_to_logvar = nn.Linear(self.params.encoder_size * 2, self.params.latent_variable_size)
 
-        self.decoder = Decoder(self.params)
+        self.generator = Generator(self.params)
 
     def forward(self, drop_prob,
                 encoder_input=None,
                 decoder_input=None,
                 z=None, initial_state=None):
         """
-        :param drop_prob: probability of an element of decoder input to be zeroed in sense of dropout
-        
+        :param drop_prob: probability of an element of decoder input to be dropped out
         :param encoder_input: An tensor with shape of [batch_size, seq_len] of Long type
         :param decoder_input: An tensor with shape of [batch_size, max_seq_len + 1] of Long type
-        
         :param z: context if sampling is performing
-        :param initial_state: initial state of decoder rnn in order to perform sampling
-
+        :param initial_state: initial state of decoder rnn if sampling is performing
         :return: mu of N(mu, var) of sentence words distribution probabilities
                     with shape of [batch_size, seq_len, word_embed_size]
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
@@ -56,7 +53,7 @@ class ContRVAE(nn.Module):
 
             encoder_input = self.embedding(encoder_input)
 
-            context = self.encoder(encoder_input)
+            context = self.inference(encoder_input)
 
             mu = self.context_to_mu(context)
             logvar = self.context_to_logvar(context)
@@ -74,7 +71,7 @@ class ContRVAE(nn.Module):
 
         decoder_input = self.embedding(decoder_input)
         decoder_input = F.dropout(decoder_input, drop_prob, training=z is None)
-        out, final_state = self.decoder(decoder_input, z, initial_state)
+        out, final_state = self.generator(decoder_input, z, initial_state)
 
         return out, final_state, kld
 
@@ -87,13 +84,12 @@ class ContRVAE(nn.Module):
         def train(i, batch_size, use_cuda, drop_prob):
 
             [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'train', use_cuda)
-
             output, _, kld = self(drop_prob, encoder_input, decoder_input)
 
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
             output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).sum(1).mean()
+            error = t.pow(output - decoder_target, 2).sum(1)/batch_size
 
             '''
             loss is constructed from error formed from squared error between output and target
@@ -119,7 +115,7 @@ class ContRVAE(nn.Module):
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
             output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).sum(1).mean()
+            error = t.pow(output - decoder_target, 2).sum(1)/batch_size
 
             return error, kld
 

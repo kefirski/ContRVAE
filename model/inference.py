@@ -4,9 +4,9 @@ import torch.nn.functional as F
 from selfModules.highway import Highway
 
 
-class Encoder(nn.Module):
+class Inference(nn.Module):
     def __init__(self, params):
-        super(Encoder, self).__init__()
+        super(Inference, self).__init__()
 
         self.params = params
 

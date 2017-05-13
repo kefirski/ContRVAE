@@ -5,16 +5,16 @@ from selfModules.highway import Highway
 from utils.functions import parameters_allocation_check
 
 
-class Decoder(nn.Module):
+class Generator(nn.Module):
     def __init__(self, params):
-        super(Decoder, self).__init__()
+        super(Generator, self).__init__()
 
         self.params = params
 
-        self.rnn = nn.LSTM(input_size=self.params.latent_variable_size + self.params.word_embed_size,
-                           hidden_size=self.params.decoder_size,
-                           num_layers=self.params.decoder_num_layers,
-                           batch_first=True)
+        self.rnn = nn.GRU(input_size=self.params.latent_variable_size + self.params.word_embed_size,
+                          hidden_size=self.params.decoder_size,
+                          num_layers=self.params.decoder_num_layers,
+                          batch_first=True)
 
         self.highway = Highway(self.params.decoder_size, 3, F.elu)
         self.fc = nn.Linear(self.params.decoder_size, self.params.word_embed_size)
@@ -23,8 +23,7 @@ class Decoder(nn.Module):
         """
         :param decoder_input: tensor with shape of [batch_size, seq_len, word_embed_size]
         :param z: latent variable with shape of [batch_size, latent_variable_size]
-        :param initial_state: initial state of decoder rnn
-
+        :param initial_state: initial state of generator rnn
         :return: unnormalized logits of sentense words distribution probabilities
                     with shape of [batch_size, seq_len, word_embed_size]
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
@@ -35,14 +34,16 @@ class Decoder(nn.Module):
 
         [batch_size, seq_len, _] = decoder_input.size()
 
-        '''decoder rnn is conditioned on context via additional bias = W_cond * z to every input token'''
+        '''decoder rnn is conditioned on context via additional bias = W_cond * z applied to every input token'''
         z = t.cat([z] * seq_len, 1).view(batch_size, seq_len, self.params.latent_variable_size)
         decoder_input = t.cat([decoder_input, z], 2)
 
-        rnn_out, final_state = self.rnn(decoder_input, initial_state)
+        result, final_state = self.rnn(decoder_input, initial_state)
+        # print(result[0].max(1))
+        # print(result[1].max(1))
 
-        rnn_out = rnn_out.contiguous().view(-1, self.params.decoder_size)
-        result = self.highway(rnn_out)
+        result = result.contiguous().view(-1, self.params.decoder_size)
+        result = self.highway(result)
         result = self.fc(result)
         result = result.view(batch_size, seq_len, self.params.word_embed_size)
 

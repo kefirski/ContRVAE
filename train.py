@@ -16,8 +16,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ContRVAE')
     parser.add_argument('--num-iterations', type=int, default=120000, metavar='NI',
                         help='num iterations (default: 120000)')
-    parser.add_argument('--batch-size', type=int, default=32, metavar='BS',
-                        help='batch size (default: 32)')
+    parser.add_argument('--batch-size', type=int, default=5, metavar='BS',
+                        help='batch size (default: 5)')
     parser.add_argument('--use-cuda', type=bool, default=False, metavar='CUDA',
                         help='use cuda (default: False)')
     parser.add_argument('--learning-rate', type=float, default=0.0005, metavar='LR',
