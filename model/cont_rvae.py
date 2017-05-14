@@ -43,7 +43,7 @@ class ContRVAE(nn.Module):
         assert z is None and fold(lambda acc, parameter: acc and parameter is not None,
                                   [encoder_input, decoder_input],
                                   True) \
-            or (z is not None and decoder_input is not None), \
+               or (z is not None and decoder_input is not None), \
             "Invalid input. If z is None then encoder and decoder inputs should be passed as arguments"
 
         if z is None:
@@ -82,14 +82,13 @@ class ContRVAE(nn.Module):
 
     def trainer(self, optimizer, batch_loader):
         def train(i, batch_size, use_cuda, drop_prob):
-
             [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'train', use_cuda)
             output, _, kld = self(drop_prob, encoder_input, decoder_input)
 
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
             output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).sum(1)/batch_size
+            error = t.pow(output - decoder_target, 2).sum() / batch_size
 
             '''
             loss is constructed from error formed from squared error between output and target
@@ -107,7 +106,6 @@ class ContRVAE(nn.Module):
 
     def validater(self, batch_loader):
         def validate(batch_size, use_cuda):
-
             [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'validation', use_cuda)
 
             output, _, kld = self(0, encoder_input, decoder_input)
@@ -115,7 +113,7 @@ class ContRVAE(nn.Module):
             decoder_target = self.embedding(decoder_target).view(batch_size, -1)
             output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).sum(1)/batch_size
+            error = t.pow(output - decoder_target, 2).sum() / batch_size
 
             return error, kld
 

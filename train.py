@@ -7,7 +7,6 @@ from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
 from model.cont_rvae import ContRVAE
 
-
 if __name__ == "__main__":
 
     if not os.path.exists('data/preprocessings/word_embeddings.npy'):

@@ -39,8 +39,6 @@ class Generator(nn.Module):
         decoder_input = t.cat([decoder_input, z], 2)
 
         result, final_state = self.rnn(decoder_input, initial_state)
-        # print(result[0].max(1))
-        # print(result[1].max(1))
 
         result = result.contiguous().view(-1, self.params.decoder_size)
         result = self.highway(result)
