@@ -77,7 +77,7 @@ class ContRVAE(nn.Module):
 
     def learnable_parameters(self):
 
-        """word_embedding is constant parameter thus it must be dropped from list of parameters for optimizer"""
+        """word_embedding is constant parameter thus it must be dropped from the list of parameters for optimizer"""
         return [p for p in self.parameters() if p.requires_grad]
 
     def trainer(self, optimizer, batch_loader):

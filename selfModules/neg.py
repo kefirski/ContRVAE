@@ -44,7 +44,7 @@ class NEG_loss(nn.Module):
             noise = noise.cuda()
         noise = self.out_embed(noise).neg()
 
-        log_target = (input * output).sum(1).squeeze().sigmoid().log()
+        log_target = (input * output).sum(1).squeeze(1).sigmoid().log()
 
         ''' ∑[batch_size * window_size, num_sampled, embed_size] * [batch_size * window_size, embed_size, 1] ->
             ∑[batch_size, num_sampled, 1] -> [batch_size] '''

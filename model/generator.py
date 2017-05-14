@@ -35,7 +35,7 @@ class Generator(nn.Module):
         [batch_size, seq_len, _] = decoder_input.size()
 
         '''decoder rnn is conditioned on context via additional bias = W_cond * z applied to every input token'''
-        z = t.cat([z] * seq_len, 1).view(batch_size, seq_len, self.params.latent_variable_size)
+        z = z.unsqueeze(1).repeat(1, seq_len, 1)
         decoder_input = t.cat([decoder_input, z], 2)
 
         result, final_state = self.rnn(decoder_input, initial_state)

@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     optimizer = Adam(cont_rvae.learnable_parameters(), args.learning_rate)
 
-    train_step = cont_rvae.trainer(optimizer, batch_loader)
+    train = cont_rvae.trainer(optimizer, batch_loader)
     validate = cont_rvae.validater(batch_loader)
 
     se_result = []
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     for iteration in range(args.num_iterations):
 
-        error, kld, coef = train_step(iteration, args.batch_size, args.use_cuda, args.dropout)
+        error, kld, coef = train(iteration, args.batch_size, args.use_cuda, args.dropout)
 
         if iteration % 10 == 0:
             print('\n')
