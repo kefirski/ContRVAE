@@ -6,7 +6,6 @@ from torch.autograd import Variable
 from .generator import Generator
 from .inference import Inference
 from selfModules.embedding import EmbeddingLockup
-from selfModules.softargmax import SoftArgmax
 from utils.functions import kld_coef, fold
 
 
@@ -40,10 +39,8 @@ class ContRVAE(nn.Module):
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
         """
 
-        assert z is None and fold(lambda acc, parameter: acc and parameter is not None,
-                                  [encoder_input, decoder_input],
-                                  True) \
-               or (z is not None and decoder_input is not None), \
+        assert z is None and fold(lambda acc, par: acc and par is not None, [encoder_input, decoder_input], True) \
+            or (z is not None and decoder_input is not None), \
             "Invalid input. If z is None then encoder and decoder inputs should be passed as arguments"
 
         if z is None:
