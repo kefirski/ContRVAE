@@ -83,11 +83,15 @@ class BatchLoader:
 
         self.data_tensor = np.array([[list(map(self.word_to_idx.get, line)) for line in target]
                                      for target in data_words])
+
+        self.words_freq = collections.Counter([idx for line in self.data_tensor[0] for idx in line])
+        self.words_freq = [self.words_freq[i] + 1 / self.vocab_size for i in range(self.vocab_size)]
+
         for target, path in enumerate(tensor_paths):
             np.save(path, self.data_tensor[target])
 
             '''uses to pick up data pairs for embedding learning'''
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 8)])
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 12)])
 
     def load_preprocessed(self, data_files, idx_file, tensor_paths):
 
@@ -105,7 +109,10 @@ class BatchLoader:
 
         self.data_tensor = np.array([np.load(target) for target in tensor_paths])
 
-        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 8)])
+        self.words_freq = collections.Counter([idx for line in self.data_tensor[0] for idx in line])
+        self.words_freq = [self.words_freq[i] + 1 / self.vocab_size for i in range(self.vocab_size)]
+
+        self.embed_pairs = np.array([pair for line in self.data_tensor[0] for pair in BatchLoader.bag_window(line, 12)])
 
     def next_seq(self, batch_size, target: str, use_cuda: bool):
         """
@@ -122,12 +129,15 @@ class BatchLoader:
         decoder_input = [[self.word_to_idx[self.go_token]] + line for line in encoder_input]
         decoder_target = [line + [self.word_to_idx[self.end_token]] for line in encoder_input]
 
+        input_seq_len = [len(line) for line in encoder_input]
+        max_input_seq_len = np.amax(input_seq_len)
+
         for i in range(len(encoder_input)):
-            to_add = self.max_seq_len - len(decoder_target[i])
+            to_add = max_input_seq_len - len(encoder_input[i])
 
             encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
-            decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
             decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
+            decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
 
         input = [np.array(var) for var in [encoder_input, decoder_input, decoder_target]]
         input = [Variable(t.from_numpy(var)).long() for var in input]

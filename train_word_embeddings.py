@@ -8,25 +8,27 @@ from torch.optim import SGD
 from utils.batch_loader import BatchLoader
 from utils.parameters import Parameters
 from selfModules.neg import NEG_loss
+from math import sqrt
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='word2vec')
     parser.add_argument('--num-iterations', type=int, default=1000000, metavar='NI',
                         help='num iterations (default: 1000000)')
-    parser.add_argument('--batch-size', type=int, default=25, metavar='BS',
-                        help='batch size (default: 25)')
-    parser.add_argument('--num-sample', type=int, default=8, metavar='NS',
-                        help='num sample (default: 8)')
-    parser.add_argument('--use-cuda', type=bool, default=False, metavar='CUDA',
-                        help='use cuda (default: False)')
+    parser.add_argument('--batch-size', type=int, default=20, metavar='BS',
+                        help='batch size (default: 20)')
+    parser.add_argument('--num-sample', type=int, default=14, metavar='NS',
+                        help='num sample (default: 14)')
+    parser.add_argument('--use-cuda', type=bool, default=True, metavar='CUDA',
+                        help='use cuda (default: True)')
     args = parser.parse_args()
 
     batch_loader = BatchLoader('')
     params = Parameters(batch_loader.max_seq_len,
                         batch_loader.vocab_size)
 
-    neg_loss = NEG_loss(params.vocab_size, params.word_embed_size)
+    neg_loss = NEG_loss(params.vocab_size, params.word_embed_size,
+                        weights=[1 - sqrt(5e-5 / i) for i in batch_loader.words_freq])
     if args.use_cuda:
         neg_loss = neg_loss.cuda()
 

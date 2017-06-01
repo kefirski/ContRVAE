@@ -21,11 +21,11 @@ class Generator(nn.Module):
 
     def forward(self, decoder_input, z, initial_state=None):
         """
-        :param decoder_input: tensor with shape of [batch_size, seq_len, word_embed_size]
+        :param decoder_input: tensor with shape of [batch_size, max_seq_len + 1, word_embed_size]
         :param z: latent variable with shape of [batch_size, latent_variable_size]
         :param initial_state: initial state of generator rnn
         :return: unnormalized logits of sentense words distribution probabilities
-                    with shape of [batch_size, seq_len, word_embed_size]
+                    with shape of [batch_size, max_seq_len + 1, word_embed_size]
                  final rnn state with shape of [num_layers, batch_size, decoder_rnn_size]
         """
 

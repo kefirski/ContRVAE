@@ -30,7 +30,7 @@ class ContRVAE(nn.Module):
                 z=None, initial_state=None):
         """
         :param drop_prob: probability of an element of decoder input to be dropped out
-        :param encoder_input: An tensor with shape of [batch_size, seq_len] of Long type
+        :param encoder_input: An tensor with shape of [batch_size, max_seq_len] of Long type
         :param decoder_input: An tensor with shape of [batch_size, max_seq_len + 1] of Long type
         :param z: context if sampling is performing
         :param initial_state: initial state of decoder rnn if sampling is performing
@@ -40,7 +40,7 @@ class ContRVAE(nn.Module):
         """
 
         assert z is None and fold(lambda acc, par: acc and par is not None, [encoder_input, decoder_input], True) \
-            or (z is not None and decoder_input is not None), \
+               or (z is not None and decoder_input is not None), \
             "Invalid input. If z is None then encoder and decoder inputs should be passed as arguments"
 
         if z is None:
@@ -73,8 +73,6 @@ class ContRVAE(nn.Module):
         return out, final_state, kld
 
     def learnable_parameters(self):
-
-        """word_embedding is constant parameter thus it must be dropped from the list of parameters for optimizer"""
         return [p for p in self.parameters() if p.requires_grad]
 
     def trainer(self, optimizer, batch_loader):
@@ -82,16 +80,18 @@ class ContRVAE(nn.Module):
             [encoder_input, decoder_input, decoder_target] = batch_loader.next_seq(batch_size, 'train', use_cuda)
             output, _, kld = self(drop_prob, encoder_input, decoder_input)
 
-            decoder_target = self.embedding(decoder_target).view(batch_size, -1)
-            output = output.view(batch_size, -1)
+            decoder_target = self.embedding(decoder_target)
+            # output = output.view(batch_size, -1)
 
-            error = t.pow(output - decoder_target, 2).sum() / batch_size
+            [_, seq_len, _] = encoder_input.size()
+            error = t.pow(output - decoder_target, 2).mean()
 
             '''
-            loss is constructed from error formed from squared error between output and target
-            and KL Divergence between p(z) and q(z|x) averaged over whole batches
+            loss is constructed fromaveraged over whole batches error 
+            formed from squared error between output and target
+            and KL Divergence between p(z) and q(z|x)
             '''
-            loss = error + kld_coef(i) * kld
+            loss = 100 * error + kld_coef(i) * kld
 
             optimizer.zero_grad()
             loss.backward()
@@ -147,7 +147,6 @@ class ContRVAE(nn.Module):
 
             decoder_input = np.array([[idx]])
             decoder_input = Variable(t.from_numpy(decoder_input).long())
-
             if use_cuda:
                 decoder_input = decoder_input.cuda()
 
