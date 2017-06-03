@@ -37,3 +37,7 @@ class EmbeddingLockup(nn.Module):
         input = input.unsqueeze(1)
 
         return (t.mm(self.embeddings.weight, input) / (self.norm * input_norm + 1e-16)).squeeze(1)
+
+    def cuda(self, device_id=None):
+        super(EmbeddingLockup, self).cuda(device_id)
+        self.norm = self.norm.cuda()
