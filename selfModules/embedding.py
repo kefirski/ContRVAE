@@ -17,7 +17,6 @@ class EmbeddingLockup(nn.Module):
 
         self.embeddings = nn.Embedding(self.params.vocab_size, self.params.word_embed_size)
         self.embeddings.weight = Parameter(t.from_numpy(embeddings).float(), requires_grad=False)
-        self.norm = t.norm(self.embeddings.weight, dim=1).squeeze(1)
 
     def forward(self, input):
         """
@@ -33,11 +32,8 @@ class EmbeddingLockup(nn.Module):
         :return: An tensor with shape [vocab_size] with estimated similarity values
         """
 
-        if input.is_cuda:
-            self.norm = self.norm.cuda()
+        input = input.unsqueeze(0).repeat(self.params.vocab_size, 1)
 
-        input_norm = t.norm(input, dim=0).repeat(self.params.vocab_size)
-        input = input.unsqueeze(1)
+        return t.pow(self.embeddings.weight - input, 2).mean(1).squeeze()
 
-        return (t.mm(self.embeddings.weight, input) / (self.norm * input_norm + 1e-16)).squeeze(1)
 

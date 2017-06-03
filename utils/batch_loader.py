@@ -192,7 +192,4 @@ class BatchLoader:
 
     def decode_word(self, distribution):
 
-        ix = np.random.choice(range(self.vocab_size), p=distribution.ravel())
-        x = np.zeros((self.vocab_size, 1))
-        x[ix] = 1
-        return self.idx_to_word[np.argmax(x)]
+        return np.random.choice(range(self.vocab_size), p=distribution.ravel())
