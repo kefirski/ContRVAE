@@ -81,9 +81,7 @@ class ContRVAE(nn.Module):
             output, _, kld = self(drop_prob, encoder_input, decoder_input)
 
             decoder_target = self.embedding(decoder_target)
-            # output = output.view(batch_size, -1)
 
-            [_, seq_len, _] = encoder_input.size()
             error = t.pow(output - decoder_target, 2).mean()
 
             '''
@@ -91,7 +89,7 @@ class ContRVAE(nn.Module):
             formed from squared error between output and target
             and KL Divergence between p(z) and q(z|x)
             '''
-            loss = 100 * error + kld_coef(i) * kld
+            loss = 400 * error + kld_coef(i) * kld
 
             optimizer.zero_grad()
             loss.backward()
@@ -107,10 +105,9 @@ class ContRVAE(nn.Module):
 
             output, _, kld = self(0, encoder_input, decoder_input)
 
-            decoder_target = self.embedding(decoder_target).view(batch_size, -1)
-            output = output.view(batch_size, -1)
+            decoder_target = self.embedding(decoder_target)
 
-            error = t.pow(output - decoder_target, 2).sum() / batch_size
+            error = t.pow(output - decoder_target, 2).mean()
 
             return error, kld
 

@@ -7,12 +7,12 @@ class Parameters:
 
         self.vocab_size = int(vocab_size)
 
-        self.word_embed_size = 300
+        self.word_embed_size = 35
 
-        self.encoder_size = 250
-        self.encoder_num_layers = 3
+        self.encoder_size = 20
+        self.encoder_num_layers = 2
 
-        self.latent_variable_size = 200
+        self.latent_variable_size = 20
 
-        self.decoder_size = 120
-        self.decoder_num_layers = 4
+        self.decoder_size = 25
+        self.decoder_num_layers = 2
