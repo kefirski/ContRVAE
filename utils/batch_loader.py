@@ -125,19 +125,24 @@ class BatchLoader:
 
         indexes = np.array(np.random.randint(self.num_lines[target], size=batch_size))
 
-        encoder_input = [self.data_tensor[target][index] for index in indexes]
+        '''
+        I've spended for about 3.5 hours fixing this bug caused by nympy's by-defauld mutability
+        
+        '''
+        encoder_input = [np.copy(self.data_tensor[target][index]).tolist() for index in indexes]
+        input_seq_len = [len(line) for line in encoder_input]
+        max_input_seq_len = max(input_seq_len)
+
         decoder_input = [[self.word_to_idx[self.go_token]] + line for line in encoder_input]
         decoder_target = [line + [self.word_to_idx[self.end_token]] for line in encoder_input]
 
-        input_seq_len = [len(line) for line in encoder_input]
-        max_input_seq_len = np.amax(input_seq_len)
+        to_add = [max_input_seq_len - len(encoder_input[i]) for i in range(batch_size)]
 
-        for i in range(len(encoder_input)):
-            to_add = max_input_seq_len - len(encoder_input[i])
+        for i in range(batch_size):
 
-            encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
-            decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add
-            decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add
+            encoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add[i]
+            decoder_input[i] += [self.word_to_idx[self.pad_token]] * to_add[i]
+            decoder_target[i] += [self.word_to_idx[self.pad_token]] * to_add[i]
 
         input = [np.array(var) for var in [encoder_input, decoder_input, decoder_target]]
         input = [Variable(t.from_numpy(var)).long() for var in input]

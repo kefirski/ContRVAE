@@ -33,11 +33,11 @@ class EmbeddingLockup(nn.Module):
         :return: An tensor with shape [vocab_size] with estimated similarity values
         """
 
+        if input.is_cuda:
+            self.norm = self.norm.cuda()
+
         input_norm = t.norm(input, dim=0).repeat(self.params.vocab_size)
         input = input.unsqueeze(1)
 
         return (t.mm(self.embeddings.weight, input) / (self.norm * input_norm + 1e-16)).squeeze(1)
 
-    def cuda(self, device_id=None):
-        super(EmbeddingLockup, self).cuda(device_id)
-        self.norm = self.norm.cuda()
