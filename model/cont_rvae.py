@@ -132,8 +132,9 @@ class ContRVAE(nn.Module):
 
             output = output.squeeze()
             similarity = self.embedding.similarity(output)
+            similarity = F.softmin(similarity)
             similarity = similarity.data.cpu().numpy()
-            idx = batch_loader.decode_word(similarity/sum(similarity))
+            idx = batch_loader.decode_word(similarity)
 
             word = batch_loader.idx_to_word[idx]
 
